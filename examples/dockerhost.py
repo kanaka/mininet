@@ -10,6 +10,7 @@ import pty
 import select
 import shlex
 import time
+import docker
 
 
 class DockerHost(Node):
@@ -22,8 +23,11 @@ class DockerHost(Node):
     - iperf
     """
 
-    from docker import from_env
-    dcli = from_env()
+    # Statically cache docker client connection but initialize on
+    # first __init__ so that docker environmnet settings
+    # (like DOCKER_HOST) can be overridden by the caller. This does
+    # imply that these settings cannot unique per host.
+    dcli = None
 
     docker_args_default = {
         "image": "alpine",
@@ -48,6 +52,9 @@ class DockerHost(Node):
 
         [1] https://docker-py.readthedocs.io/en/stable/containers.html
         """
+        if not self.__class__.dcli:
+            self.__class__.dcli = docker.from_env()
+
         if shell_cmd is None:
             self.shell_cmd = list(self.__class__.shell_cmd_default)
         else:
